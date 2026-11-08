@@ -1,4 +1,4 @@
-# Die ehrliche Visitenkarte – KI-Version 4
+# Die ehrliche Visitenkarte – KI-Version 4.1
 
 500 × 500 px Visitenkarten-Generator mit Foto-Upload, Mann/Frau/Bär, KI-generiertem Comic und **KI-Button direkt unter „Was machst du eigentlich oft?“**. Der Vorschlag wird aus dem offiziellen Jobtitel generiert und kann durch erneutes Klicken variiert werden.
 
@@ -10,6 +10,10 @@
 4. Netlify-URL öffnen und **Lustige Idee vorschlagen (KI)** sowie **KI-Comic generieren** testen.
 
 **Wichtig:** Netlify Drop (reines Drag & Drop einer statischen ZIP) stellt die benötigten Functions nicht zuverlässig bereit. Für KI bitte GitHub-Import wie oben oder Netlify CLI mit Functions-Deployment verwenden. Die ZIP ist GitHub-fertig und benötigt weder npm install noch Build-Skript.
+
+## Fehlerdiagnose
+
+Falls der Button „Lustige Idee vorschlagen“ eine Fehlermeldung anzeigt, prüfe im Netlify-Dashboard unter **Logs → Functions** die Funktion `suggest`. Eine 404/HTML-Antwort bedeutet meistens, dass nur die statische Seite ohne Netlify Functions veröffentlicht wurde. Bei 503 kontrolliere `OPENAI_API_KEY` und starte anschließend einen neuen Deploy. Bei 502 kontrolliere OpenAI-API-Zugang, Guthaben und Function-Logs. Die App zeigt jetzt eine verständliche Fehlermeldung statt eines JSON-Parsing-Fehlers.
 
 ## Technisches / Sicherheit
 

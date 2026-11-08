@@ -25,13 +25,25 @@ const activePhoto=photo||aiPhoto;if(activePhoto){const iw=activePhoto.naturalWid
 let shade=x.createLinearGradient(0,115,0,500);shade.addColorStop(0,'rgba(6,17,27,0)');shade.addColorStop(.36,'rgba(6,17,27,.65)');shade.addColorStop(.66,'rgba(6,17,27,.94)');shade.addColorStop(1,'#06111b');x.fillStyle=shade;x.fillRect(0,100,500,400);
 x.textAlign='center';x.fillStyle='#fff';let ns=43, nl;do{nl=wrap(name.toLocaleUpperCase('de-DE'),454,ns,'800');if(nl.length<=2&&nl.every(t=>{x.font=`800 ${ns}px Arial`;return x.measureText(t).width<=454}))break;ns-=2}while(ns>21);x.font=`800 ${ns}px Arial`;nl.forEach((l,i)=>x.fillText(l,250,34+i*(ns+2)));x.fillStyle='#75e4d7';x.font='700 10px Arial';x.fillText('DIE EHRLICHE VISITENKARTE',250,40+nl.length*(ns+2));
 x.textAlign='left';x.fillStyle='#78e3d6';x.font='bold 13px Arial';x.fillText('STATEMENT',25,307);x.fillStyle='#fff';let statement=`Auf meiner Visitenkarte steht ${job}. An manchen Tagen wäre ${real} ehrlicher.`;let size=25,rows;while(size>=14){rows=wrap(statement,450,size);if(rows.length<=6&&rows.length*(size*1.22)<=155)break;size--}x.font=`700 ${size}px Arial`;let y=339;for(let line of rows){x.fillText(line,25,y);y+=size*1.22}x.fillStyle='#57d4c8';x.fillRect(25,481,80,4);x.fillStyle='#adc9cf';x.font='10px Arial';x.fillText('WAS MACHST DU WIRKLICH?',119,487)}
-fields.forEach(f=>f.addEventListener('input',()=>{aiPhoto=null;draw()}));document.querySelectorAll('input[name=figure]').forEach(el=>el.addEventListener('change',()=>{aiPhoto=null;draw()}));const ideaBtn=document.getElementById('idea'),ideaStatus=document.getElementById('ideaStatus');
+fields.forEach(f=>f.addEventListener('input',()=>{aiPhoto=null;draw()}));document.querySelectorAll('input[name=figure]').forEach(el=>el.addEventListener('change',()=>{aiPhoto=null;draw()}));
+async function readFunctionResponse(response){
+ const raw=await response.text();let data;
+ try{data=JSON.parse(raw)}catch{
+  const looksHtml=/^\s*</.test(raw);
+  if(response.status===404||looksHtml)throw new Error('Netlify-KI-Funktion nicht gefunden. Bitte die App über GitHub mit dem Ordner netlify/functions deployen (nicht nur per Drag & Drop).');
+  if(response.status===502||response.status===504)throw new Error('Netlify konnte die KI-Funktion nicht ausführen. Prüfe die Function-Logs im Netlify-Dashboard.');
+  throw new Error(`Serverantwort ist kein gültiges JSON (HTTP ${response.status}). Bitte Netlify-Deploy und Function-Logs prüfen.`);
+ }
+ if(!response.ok)throw new Error(data?.error||`KI-Anfrage fehlgeschlagen (HTTP ${response.status}).`);
+ return data;
+}
+const ideaBtn=document.getElementById('idea'),ideaStatus=document.getElementById('ideaStatus');
 ideaBtn.onclick=async()=>{
  const job=fields[1].value.trim();if(!job){ideaStatus.textContent='Bitte zuerst deinen offiziellen Job eintragen.';return;}
  ideaBtn.disabled=true;ideaBtn.textContent='✨ KI denkt nach …';ideaStatus.textContent='Suche nach der ungeschönten Wahrheit …';
  try{
   const response=await fetch('/.netlify/functions/suggest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({job})});
-  const data=await response.json();if(!response.ok)throw new Error(data.error||'Kein Vorschlag verfügbar.');
+  const data=await readFunctionResponse(response);
   if(job!==fields[1].value.trim()){ideaStatus.textContent='Dein Job wurde geändert. Bitte noch einmal klicken.';return;}
   fields[2].value=data.suggestion;aiPhoto=null;draw();ideaStatus.textContent='KI-Vorschlag übernommen. Noch nicht frech genug? Einfach erneut klicken!';
  }catch(e){ideaStatus.textContent=e.message||'KI gerade nicht erreichbar.';}
@@ -48,7 +60,7 @@ generateBtn.addEventListener('click',async()=>{
   generateBtn.disabled=true;generateBtn.textContent='KI zeichnet …';aiStatus.textContent='Deine Comic-Szene wird generiert. Das kann bis zu einer Minute dauern.';
   try{
     const response=await fetch('/.netlify/functions/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({job,real,figure})});
-    const result=await response.json();if(!response.ok)throw new Error(result.error||'Generierung fehlgeschlagen.');
+    const result=await readFunctionResponse(response);
     const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=result.image});
     if(job!==fields[1].value.trim()||real!==fields[2].value.trim()||figure!==(document.querySelector('input[name="figure"]:checked')?.value||'auto')){aiStatus.textContent='Eingaben haben sich geändert. Bitte neu generieren.';return;}
     aiPhoto=img;draw();aiStatus.textContent='Dein individueller KI-Comic ist fertig! Du kannst jetzt die Karte herunterladen.';
